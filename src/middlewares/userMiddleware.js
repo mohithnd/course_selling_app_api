@@ -1,22 +1,25 @@
-const { User } = require("../schema");
+const { JWT_SECRET } = require("../config/serverConfig");
+const jwt = require("jsonwebtoken");
 
-async function userMiddleware(req, res, next) {
-  let username = req.heards.username;
-  let password = req.heards.password;
-
-  if (!username || !password) {
-    return res.json({ message: "Invalid Input" });
+function userMiddleware(req, res, next) {
+  const words = req.headers.authorization;
+  if (!words) {
+    return res.json({ message: "Your Are Not Authenticated" });
   }
 
-  let user = await User.findOne({ username: username, password: password });
-
-  if (!user) {
-    return res.json({ message: "User Not Found" });
+  const token = words.split(" ")[1];
+  if (!token) {
+    return res.json({ message: "Your Are Not Authenticated" });
   }
 
-  req.user = user;
+  const decodedValue = jwt.verify(token, JWT_SECRET);
 
-  next();
+  if (decodedValue.username && decodedValue.type === "user") {
+    req.username = decodedValue.username;
+    next();
+  } else {
+    return res.json({ message: "Your Are Not Authenticated" });
+  }
 }
 
 module.exports = userMiddleware;
